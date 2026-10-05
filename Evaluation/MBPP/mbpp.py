@@ -9,7 +9,11 @@ import torch
 import datetime
 import subprocess
 import torch.distributed as dist
-from attrdict import AttrDict
+class AttrDict(dict):
+    def __getattr__(self, attr):
+        return self[attr]
+    def __setattr__(self, attr, value):
+        self[attr] = value
 from tqdm import tqdm
 from human_eval.evaluation import evaluate_functional_correctness
 from transformers import AutoTokenizer, AutoModelForCausalLM, StoppingCriteria, StoppingCriteriaList

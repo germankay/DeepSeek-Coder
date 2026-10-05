@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cybercode-api
+    command: python3 -m serve.api_server
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_NAME=deepseek-ai/deepseek-coder-6.7b-instruct
+      - CYBERCODE_API_KEY=cybercode-secret-key-2025
+      - RATE_LIMIT_PER_MINUTE=100
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cybercode-demo
+    command: python3 demo/app.py
+    ports:
+      - "7860:7860"
+    environment:
+      - MODEL_ID=deepseek-ai/deepseek-coder-6.7b-instruct
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: always
+    depends_on:
+      - api
+
+  security-audit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cybercode-security-audit
+    command: python3 -c "import serve.security_audit; print('Security Audit Service Ready')"
+    environment:
+      - CYBERCODE_API_KEY=cybercode-secret-key-2025
+    restart: always
+
+  finetune:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cybercode-finetune
+    profiles:
+      - training
+    command: python3 finetune/finetune_cybercode.py --data_path ./data/sample_dataset.json --output_dir ./models/cybercode-lora
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

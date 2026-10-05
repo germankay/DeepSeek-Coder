@@ -1,0 +1,83 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:cybercode-studio-deepseek-coder-v1-sbom",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2025-01-01T00:00:00Z",
+    "tools": [
+      {
+        "vendor": "CyberCode Studio",
+        "name": "Software Bill of Materials Generator"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "cybercode-deepseek-coder",
+      "version": "1.0.0",
+      "description": "CyberCode Studio customized DeepSeek-Coder V1 platform for sovereign AI code security and auditing."
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "torch",
+      "version": ">=2.2.0",
+      "purl": "pkg:pypi/torch"
+    },
+    {
+      "type": "library",
+      "name": "transformers",
+      "version": "4.41.2",
+      "purl": "pkg:pypi/transformers"
+    },
+    {
+      "type": "library",
+      "name": "peft",
+      "version": "0.11.1",
+      "purl": "pkg:pypi/peft"
+    },
+    {
+      "type": "library",
+      "name": "bitsandbytes",
+      "version": ">=0.43.0",
+      "purl": "pkg:pypi/bitsandbytes"
+    },
+    {
+      "type": "library",
+      "name": "fastapi",
+      "version": ">=0.110.0",
+      "purl": "pkg:pypi/fastapi"
+    },
+    {
+      "type": "library",
+      "name": "pydantic",
+      "version": ">=2.7.0",
+      "purl": "pkg:pypi/pydantic"
+    },
+    {
+      "type": "library",
+      "name": "uvicorn",
+      "version": ">=0.28.0",
+      "purl": "pkg:pypi/uvicorn"
+    },
+    {
+      "type": "model",
+      "name": "deepseek-coder-1.3b-instruct",
+      "version": "v1",
+      "purl": "pkg:huggingface/deepseek-ai/deepseek-coder-1.3b-instruct"
+    },
+    {
+      "type": "model",
+      "name": "deepseek-coder-6.7b-instruct",
+      "version": "v1",
+      "purl": "pkg:huggingface/deepseek-ai/deepseek-coder-6.7b-instruct"
+    },
+    {
+      "type": "model",
+      "name": "deepseek-coder-33b-instruct",
+      "version": "v1",
+      "purl": "pkg:huggingface/deepseek-ai/deepseek-coder-33b-instruct"
+    }
+  ]
+}
