@@ -23,6 +23,16 @@ MODEL_ID = os.getenv("MODEL_ID", "deepseek-ai/deepseek-coder-6.7b-instruct")
 if "v2" in MODEL_ID.lower() or "v3" in MODEL_ID.lower() or "r1" in MODEL_ID.lower():
     raise ValueError("Usage of DeepSeek V2, V3 or R1 models is strictly prohibited. Only V1 models are allowed.")
 
+DEFAULT_SYSTEM_PROMPT = (
+    "You are a helpful programming assistant. Always reply in the language of the user's "
+    "LAST message, even if earlier messages used another language: Spanish if the last "
+    "message is in Spanish, English if it is in English. "
+    "Eres un asistente de programación: responde siempre en el idioma del ÚLTIMO mensaje "
+    "del usuario, aunque los anteriores estén en otro idioma. "
+    "Keep code, identifiers and technical terms in their original form."
+)
+TIMING_MARK = "\n\n⏱"
+
 MAX_MAX_NEW_TOKENS = 2048
 DEFAULT_MAX_NEW_TOKENS = 1024
 MAX_INPUT_TOKEN_LENGTH = int(os.getenv("MAX_INPUT_TOKEN_LENGTH", "4096"))
@@ -90,11 +100,22 @@ def generate(
         yield "Model is not loaded. Please verify configuration and server memory."
         return
 
-    conversation = []
-    if system_prompt:
-        conversation.append({"role": "system", "content": system_prompt})
-    for user, assistant in chat_history:
-        conversation.extend([{"role": "user", "content": user}, {"role": "assistant", "content": assistant}])
+    conversation = [{"role": "system", "content": system_prompt.strip() or DEFAULT_SYSTEM_PROMPT}]
+    for turn in chat_history:
+        # Gradio entrega el historial como dicts {"role","content"} o como pares (user, assistant)
+        turns = [turn] if isinstance(turn, dict) else [
+            {"role": "user", "content": turn[0]},
+            {"role": "assistant", "content": turn[1]},
+        ]
+        for item in turns:
+            content = item["content"]
+            if isinstance(content, list):
+                content = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
+            if content is None:
+                continue
+            # No reenviar al modelo la línea de tiempo que agrega la interfaz
+            content = content.split(TIMING_MARK)[0]
+            conversation.append({"role": item["role"], "content": content})
     conversation.append({"role": "user", "content": message})
 
     try:
@@ -131,13 +152,13 @@ def generate(
         for text in streamer:
             outputs.append(text)
             elapsed = time.perf_counter() - start_time
-            yield "".join(outputs).replace("<|EOT|>", "") + f"\n\n⏱ {elapsed:.1f} s…"
+            yield "".join(outputs).replace("<|EOT|>", "") + f"{TIMING_MARK} {elapsed:.1f} s…"
 
         elapsed = time.perf_counter() - start_time
         final_text = "".join(outputs).replace("<|EOT|>", "")
         n_tokens = len(tokenizer.encode(final_text, add_special_tokens=False))
         speed = n_tokens / elapsed if elapsed > 0 else 0.0
-        yield final_text + f"\n\n⏱ {elapsed:.1f} s · {n_tokens} tokens · {speed:.1f} tokens/s"
+        yield final_text + f"{TIMING_MARK} {elapsed:.1f} s · {n_tokens} tokens · {speed:.1f} tokens/s"
 
     except torch.cuda.OutOfMemoryError:
         if torch.cuda.is_available():
@@ -150,7 +171,7 @@ def generate(
 chat_interface = gr.ChatInterface(
     fn=generate,
     additional_inputs=[
-        gr.Textbox(label="System prompt", lines=6),
+        gr.Textbox(label="System prompt", lines=6, value=DEFAULT_SYSTEM_PROMPT),
         gr.Slider(
             label="Max new tokens",
             minimum=1,
@@ -189,6 +210,8 @@ chat_interface = gr.ChatInterface(
     ],
     examples=[
         ["implement snake game using pygame"],
+        ["Explícame brevemente qué es Python"],
+        ["Escribe una función en Python que calcule el factorial de un número"],
         ["Can you explain briefly to me what is the Python programming language?"],
         ["write a program to find the factorial of a number"],
     ],
