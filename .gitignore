@@ -1,3 +1,48 @@
 __pycache__/
 Evaluation/MBPP/eval_instruct.sh
 Evaluation/LeetCode/output/
+
+# Python
+*.py[cod]
+*.pycache/
+*.egg-info/
+build/
+dist/
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Cachés de herramientas
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+
+# Modelos, adaptadores y datos generados
+models/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+outputs/
+runs/
+wandb/
+data/cleaned_*
+
+# Logs
+*.log
+
+# Editor / sistema
+.vscode/
+.idea/
+.DS_Store

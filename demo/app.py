@@ -1,4 +1,5 @@
 import os
+import time
 from collections.abc import Iterator
 from threading import Thread
 
@@ -98,6 +99,9 @@ def generate(
 
     try:
         input_ids = tokenizer.apply_chat_template(conversation, return_tensors="pt", add_generation_prompt=True)
+        # transformers >= 5 devuelve un BatchEncoding en lugar de un tensor
+        if not isinstance(input_ids, torch.Tensor):
+            input_ids = input_ids["input_ids"]
         if input_ids.shape[1] > MAX_INPUT_TOKEN_LENGTH:
             input_ids = input_ids[:, -MAX_INPUT_TOKEN_LENGTH:]
             gr.Warning(f"Trimmed input from conversation as it was longer than {MAX_INPUT_TOKEN_LENGTH} tokens.")
@@ -119,20 +123,28 @@ def generate(
         # Remove None values
         generate_kwargs = {k: v for k, v in generate_kwargs.items() if v is not None}
 
+        start_time = time.perf_counter()
         t = Thread(target=model.generate, kwargs=generate_kwargs)
         t.start()
 
         outputs = []
         for text in streamer:
             outputs.append(text)
-            yield "".join(outputs).replace("<|EOT|>", "")
+            elapsed = time.perf_counter() - start_time
+            yield "".join(outputs).replace("<|EOT|>", "") + f"\n\n⏱ {elapsed:.1f} s…"
+
+        elapsed = time.perf_counter() - start_time
+        final_text = "".join(outputs).replace("<|EOT|>", "")
+        n_tokens = len(tokenizer.encode(final_text, add_special_tokens=False))
+        speed = n_tokens / elapsed if elapsed > 0 else 0.0
+        yield final_text + f"\n\n⏱ {elapsed:.1f} s · {n_tokens} tokens · {speed:.1f} tokens/s"
 
     except torch.cuda.OutOfMemoryError:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         yield "An Out of Memory (OOM) error occurred on the GPU. Please try again with shorter context or fewer generation tokens."
     except Exception as e:
-        yield f"Generation error: {e!s}"
+        yield f"Generation error: {type(e).__name__}: {e!s}"
 
 
 chat_interface = gr.ChatInterface(
@@ -145,6 +157,13 @@ chat_interface = gr.ChatInterface(
             maximum=MAX_MAX_NEW_TOKENS,
             step=1,
             value=DEFAULT_MAX_NEW_TOKENS,
+        ),
+        gr.Slider(
+            label="Temperature (0 = determinista)",
+            minimum=0.0,
+            maximum=2.0,
+            step=0.05,
+            value=0.0,
         ),
         gr.Slider(
             label="Top-p (nucleus sampling)",
