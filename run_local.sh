@@ -2,7 +2,7 @@
 # Prueba local: crea el venv, instala dependencias, corre los tests y levanta la API.
 # Uso: ./run_local.sh [--solo-tests] [--demo]
 #   --solo-tests  instala, corre los tests y termina
-#   --demo        al final levanta la demo Gradio con deepseek-coder-1.3b-instruct (descarga ~2.7 GB)
+#   --demo        al final levanta la demo Gradio con deepseek-coder-1.3b-instruct (descarga el modelo en ./.hf_cache)
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -20,6 +20,9 @@ done
 API_KEY="${CYBERCODE_API_KEY:-clave-local-de-prueba}"
 PORT="${PORT:-8000}"
 
+# Los modelos se guardan dentro del proyecto (ignorado por git)
+export HF_HOME="${HF_HOME:-$PWD/.hf_cache}"
+
 echo "==> [1/4] Entorno virtual"
 if [ -d .venv ]; then
   echo "    .venv ya existe, se reutiliza"
@@ -30,11 +33,11 @@ fi
 source .venv/bin/activate
 
 echo "==> [2/4] Dependencias"
-if python -c "import pytest, httpx, fastapi, pydantic, uvicorn, numpy, transformers, datasets, accelerate, torch" 2>/dev/null; then
+if python -c "import pytest, httpx, fastapi, pydantic, uvicorn, numpy, transformers, datasets, accelerate, bitsandbytes, torch" 2>/dev/null; then
   echo "    dependencias ya instaladas, se omite"
 else
   pip install -U pip
-  pip install pytest httpx fastapi pydantic "uvicorn[standard]" numpy transformers datasets accelerate
+  pip install pytest httpx fastapi pydantic "uvicorn[standard]" numpy transformers datasets accelerate bitsandbytes
   python -c "import torch" 2>/dev/null || pip install torch
 fi
 
@@ -55,12 +58,12 @@ if [ "$SOLO_TESTS" -eq 1 ]; then
 fi
 
 if [ "$DEMO" -eq 1 ]; then
-  DEMO_MODEL="${MODEL_ID:-deepseek-ai/deepseek-coder-1.3b-instruct}"
+  DEMO_MODEL="${MODEL_ID:-deepseek-ai/deepseek-coder-6.7b-instruct}"
   echo "==> [4/4] Demo Gradio"
   echo "    Instalando dependencias de la demo..."
   pip install -r demo/requirement.txt
-  echo "    Descargando/verificando modelo ${DEMO_MODEL} (muestra progreso la primera vez)..."
-  python -c "from huggingface_hub import snapshot_download; print('    listo:', snapshot_download('${DEMO_MODEL}'))"
+  echo "    Descargando/verificando modelo ${DEMO_MODEL} (la primera vez el 6.7B pesa ~13.5 GB; luego se carga en 4 bits, ~4.5 GB de VRAM)..."
+  python -c "from huggingface_hub import snapshot_download; print('    listo:', snapshot_download('${DEMO_MODEL}', allow_patterns=['*.safetensors','*.json','*.model','tokenizer*']))"
   echo "    Iniciando demo en http://localhost:7860 (el modelo se carga en la primera consulta; los logs aparecen abajo)"
   MODEL_ID="$DEMO_MODEL" PYTHONUNBUFFERED=1 python -u demo/app.py
   exit 0

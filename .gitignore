@@ -46,3 +46,6 @@ data/cleaned_*
 .vscode/
 .idea/
 .DS_Store
+
+# Caché de modelos de Hugging Face
+.hf_cache/
