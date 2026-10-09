@@ -49,3 +49,6 @@ data/cleaned_*
 
 # Caché de modelos de Hugging Face
 .hf_cache/
+
+# Conversaciones locales
+.local_chats/

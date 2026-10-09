@@ -1,4 +1,7 @@
-gradio>=4.0.0
+gradio>=6.30.0,<7
 spaces
 torch>=2.2.0
-transformers>=4.40.0
+transformers>=4.51.0
+accelerate>=0.28.0
+bitsandbytes>=0.43.0
+pypdf>=5,<7

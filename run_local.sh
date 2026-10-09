@@ -2,7 +2,7 @@
 # Prueba local: crea el venv, instala dependencias, corre los tests y levanta la API.
 # Uso: ./run_local.sh [--solo-tests] [--demo]
 #   --solo-tests  instala, corre los tests y termina
-#   --demo        al final levanta la demo Gradio con deepseek-coder-1.3b-instruct (descarga el modelo en ./.hf_cache)
+#   --demo        al final levanta la demo Gradio con una biblioteca de modelos en ./.hf_cache
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -62,9 +62,7 @@ if [ "$DEMO" -eq 1 ]; then
   echo "==> [4/4] Demo Gradio"
   echo "    Instalando dependencias de la demo..."
   pip install -r demo/requirement.txt
-  echo "    Descargando/verificando modelo ${DEMO_MODEL} (la primera vez el 6.7B pesa ~13.5 GB; luego se carga en 4 bits, ~4.5 GB de VRAM)..."
-  python -c "from huggingface_hub import snapshot_download; print('    listo:', snapshot_download('${DEMO_MODEL}', allow_patterns=['*.safetensors','*.json','*.model','tokenizer*']))"
-  echo "    Iniciando demo en http://localhost:7860 (el modelo se carga en la primera consulta; los logs aparecen abajo)"
+  echo "    Iniciando demo en http://localhost:7860. Gestioná las descargas desde Modelos locales."
   MODEL_ID="$DEMO_MODEL" PYTHONUNBUFFERED=1 python -u demo/app.py
   exit 0
 fi
